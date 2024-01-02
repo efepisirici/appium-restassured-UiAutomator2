@@ -1,0 +1,5 @@
+/target/
+/.idea/
+*.iml
+AppiumLog.txt
+/allure-results/

@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  appium:
+    build: ./dockerfile
+    ports:
+      - "4723:4723"
+    depends_on:
+      - android-emulator
+
+  android-emulator:
+    build: ./android_dockerfile
+    ports:
+      - "5554:5554"
+      - "5555:5555"

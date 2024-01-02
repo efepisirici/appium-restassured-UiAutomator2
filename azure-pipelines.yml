@@ -1,0 +1,52 @@
+trigger:
+- main
+
+schedules:
+- cron: "0 8 * * Mon-Fri"
+  displayName: M-F 8:00 AM (UTC) daily build
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - script: docker-compose up
+    displayName: 'docker compose server is starting'
+  - task: Maven@3
+    displayName: 'Run Tests'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      goals: '-Dmaven.test.failure.ignore=true test'
+      publishJUnitResults: true
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      javaHomeOption: 'JDKVersion'
+      jdkVersionOption: '1.17'
+      mavenVersionOption: 'Default'
+      mavenAuthenticateFeed: false
+      effectivePomSkip: false
+      sonarQubeRunAnalysis: false
+  - script: npm install -g allure-commandline@2.22.0 --save-dev &&  pip install allure-combine
+    displayName: 'allure report install'
+  - script: cd testautomation && allure generate --clean
+    displayName: 'allure report generate'
+  - script: cd testautomation && allure-combine allure-report
+    displayName: 'allure combine report to one html'
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '/allure-report'
+      Contents: 'complete.html'
+      TargetFolder: '/src/test/resources/'
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: '/allure-report'
+      includeRootFolder: true
+      archiveType: 'zip'
+      archiveFile: '/src/test/resources/allure-report.zip'
+      replaceExistingArchive: true
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: Test Artifacts'
+    inputs:
+      PathtoPublish: '/src/test/resources/'
+      ArtifactName: TestArtifacts
